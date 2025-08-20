@@ -1,14 +1,11 @@
 #ifndef CAPTURE_SERVER_HPP
 #define CAPTURE_SERVER_HPP
 
+#include <cstdlib>
 #include <cstring>
 #include <dirent.h>
-#include <fstream>
-#include <iostream>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <queue>
-#include <regex>
 #include <spawn.h>
 #include <sstream>
 #include <string.h>
@@ -19,8 +16,72 @@
 #include <unistd.h>
 #include <vector>
 
+enum class req_type {
+    FILE,
+    DIRECTORY,
+    COMMAND,
+    PHP,
+    ERROR
+};
 
 #define NUM_THREADS 4
+#define BUFFER_SIZE 4096
 #define npos std::string::npos
+
+struct RequestInfo {
+    // HTTP request info
+    std::string method;
+    std::string version;
+    std::string raw_path;
+    // Request type
+    req_type type;
+    // Request internal details
+    std::string path;
+    std::string command;
+    std::string args;
+    // Print request info
+    std::string print() const;
+};
+
+
+class ConnectionContext {
+private:
+    char request_buffer[BUFFER_SIZE];
+    char response_buffer[BUFFER_SIZE];
+    int socket_fd;
+    RequestInfo request_info;
+    bool socket_closed;
+    
+public:
+    ConnectionContext();  // Default constructor for pre-allocation
+    ~ConnectionContext();
+    
+    void reset(int fd);  // Reset context for new connection
+    void cleanup();      // Clean up after request
+    
+    bool readRequest();
+    bool parseRequest();
+    bool sendResponse(const std::string& status, const std::string& content_type, const std::string& body);
+    bool sendResponseHeader(const std::string& status, const std::string& content_type, size_t content_length = 0);
+    bool sendData(const char* data, size_t length);
+    bool sendFile(const std::string& filepath);
+    
+    void handleRequest();
+    
+    RequestInfo& getRequestInfo() { return request_info; }
+    int getSocketFd() const { return socket_fd; }
+    char* getResponseBuffer() { return response_buffer; }
+    
+private:
+    bool handleCommandRequest();
+    bool handleFileRequest();
+    bool handlePhpRequest(const std::string& php_path, const std::string& args = "");
+    bool executePHP(const std::string& php_command);
+    void sendErrorResponse(const std::string& message);
+    inline std::string determineContentType(const std::string& filepath);
+};
+
+void spawn_and_capture(char *argv[], std::stringstream &output);
+void scan_directory(const std::string &directory, std::vector<std::string> &filenames);
 
 #endif

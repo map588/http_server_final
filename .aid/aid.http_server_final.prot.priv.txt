@@ -1,0 +1,142 @@
+<file path="capture_server.cpp">
+#include "capture_server.hpp"
+#include "sys/_pthread/_pthread_attr_t.h"
+#include "sys/_pthread/_pthread_types.h"
+void handle_connection(int socket_fd);
+void serve(int socket_fd, const & path, req_type req_type);
+void spawn_and_capture(char* , req_type req_type, & output);
+void scan_directory(const & directory, & filenames);
+bool command_req(int socket_fd, const & path);
+bool dir_req(int socket_fd, const & path);
+bool file_req(int socket_fd, const & path);
+php_req(int socket_fd, const & path, const & args, req_type req_type);
+char** ();
+class ThreadPool {
+    ThreadPool(size_t num_threads)
+    ~ThreadPool()
+    void enqueue(int socket_fd)
+    auto threads;
+    pthread_cond_t tasks_cond;
+    pthread_mutex_t tasks_mutex;
+    bool stopping;
+    auto tasks;
+    void start(size_t num_threads)
+    void stop()
+    static void* worker_thread(void* arg)
+};
+inline error_html(& resource);
+int main();
+void handle_connection(int socket_fd);
+void serve(int socket_fd, const & path, req_type req_type);
+void command_req(int socket_fd, const & path, char* response_buffer, size_t& bytes_written);
+bool dir_req(int socket_fd, const & path);
+bool php_req(int socket_fd, const & path, const & command, const & args, req_type req_type, char* buffer, size_t& bytes_written);
+bool file_req(int socket_fd, const & path, char* buffer, size_t& bytes_written);
+void spawn_and_capture(char* , req_type req_type, & output);
+void scan_directory(const & directory, & filenames);
+</file>
+
+<file path="capture_server.hpp">
+#include "cstring"
+#include "dirent.h"
+#include "fstream"
+#include "iostream"
+#include "netinet/in.h"
+#include "pthread.h"
+#include "queue"
+#include "regex"
+#include "spawn.h"
+#include "sstream"
+#include "string.h"
+#include "sys/_pthread/_pthread_types.h"
+#include "sys/socket.h"
+#include "sys/stat.h"
+#include "sys/wait.h"
+#include "unistd.h"
+#include "vector"
+enum class req_type {
+    FILE
+    DIR
+    COMMAND
+    STRING
+};
+</file>
+
+<file path="serving_files/browse_files.php">
+serveFile($path)
+</file>
+
+<file path="serving_files/example_execubles/alternating_case.cpp">
+#include "iostream"
+#include "string"
+#include "cctype"
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/ascii_art.cpp">
+#include "iostream"
+#include "string"
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/char_pyramid.cpp">
+#include "iostream"
+#include "string"
+void printPattern(const & str);
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/diamond_chars.cpp">
+#include "iostream"
+#include "string"
+#include "algorithm"
+void printDiamond(const & str);
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/print_arg.cpp">
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include "unistd.h"
+#include "time.h"
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/repeating_chars.cpp">
+#include "iostream"
+#include "string"
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/reverse_string.cpp">
+#include "iostream"
+#include "string"
+#include "algorithm"
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/rotating.cpp">
+#include "iostream"
+#include "string"
+#include "vector"
+#include "string"
+void printSpiral(const & str);
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/spiral.cpp">
+#include "iostream"
+#include "string"
+#include "vector"
+void printSpiral(const & str);
+int main(int argc, char* );
+</file>
+
+<file path="serving_files/example_execubles/wavy.cpp">
+#include "iostream"
+#include "string"
+void printWave(const & str);
+int main(int argc, char* );
+</file>
+
