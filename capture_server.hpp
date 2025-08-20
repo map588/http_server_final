@@ -61,6 +61,11 @@ struct RequestInfo {
 }
 };
 
+enum class log_level {
+        INFO,
+        TRACE,
+        ERROR
+    };
 
 class ConnectionContext {
 private:
@@ -100,20 +105,13 @@ private:
     void sendErrorResponse(const std::string& message);
     inline std::string determineContentType(const std::string& filepath);
 
-    enum log_level {
-        INFO,
-        TRACE,
-        ERROR
-    };
+    
     void log(int thread_id, log_level level, const std::string &message) const;
     void log(log_level level, const std::string &message) const;
-    // Logging helpers (keep messages concise)
-    inline void logInfo(const std::string &message) const;
-    inline void logTrace(const std::string &message) const;
-    inline void logError(const std::string &message) const;
 };
+
 
 void spawn_and_capture(char *argv[], std::stringstream &output);
 void scan_directory(const std::string &directory, std::vector<std::string> &filenames);
-
+inline std::string log_level_to_string(log_level level);
 #endif

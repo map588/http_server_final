@@ -1,16 +1,242 @@
-  css
-  body {
-	font-family: 'Hack', monospace;
-        background-color: #191a1a;
-        color:  #46aa9e;
-  }
-  
-  a {
-  color:  #46aa9e; 
-  text-decoration: none; 
-  }  
-  
-  a:hover {
-  color: #2c7761;
-  text-decoration: underline;
-  }  
+/* Dark Theme CSS - GitHub Dark inspired */
+body {
+    font-family: 'Hack', 'SF Mono', 'Cascadia Code', 'Roboto Mono', 'Courier New', monospace;
+    background-color: #0d1117;
+    color: #c9d1d9;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #58a6ff;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 8px;
+    margin-top: 24px;
+    margin-bottom: 16px;
+}
+
+a {
+    color: #58a6ff;
+    text-decoration: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+a:hover {
+    background: #1f242b;
+    text-decoration: underline;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    margin: 8px 0;
+    padding: 4px 0;
+}
+
+/* Forms */
+form {
+    background: #161b22;
+    padding: 20px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    margin: 20px 0;
+}
+
+label {
+    color: #8b949e;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 14px;
+    font-family: 'Hack', monospace;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+input[type="submit"],
+button {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: #238636;
+    color: #ffffff;
+    border: 1px solid #2ea043;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: 'Hack', monospace;
+}
+
+input[type="submit"]:hover,
+button:hover {
+    background: #2ea043;
+}
+
+/* Code blocks */
+pre {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'Hack', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #7ee787;
+}
+
+code {
+    background: #161b22;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Hack', monospace;
+    font-size: 0.9em;
+    color: #79c0ff;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+}
+
+th, td {
+    border: 1px solid #30363d;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+th {
+    background: #161b22;
+    color: #58a6ff;
+    font-weight: 600;
+}
+
+tr:hover {
+    background: #161b22;
+}
+
+/* Utility classes */
+.section-divider {
+    border-top: 1px solid #30363d;
+    margin: 32px 0;
+}
+
+.nav-link {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    margin: 8px 4px;
+}
+
+.info-panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 20px 0;
+}
+
+.info-panel p {
+    margin: 8px 0;
+    color: #8b949e;
+    font-size: 14px;
+}
+
+/* File browser specific */
+.path-display {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #8b949e;
+}
+
+.file-item, .dir-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.file-type {
+    display: inline-block;
+    min-width: 50px;
+    color: #8b949e;
+    font-size: 12px;
+    margin-right: 8px;
+    font-family: 'Hack', monospace;
+}
+
+/* Emphasis and muted text */
+em {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.muted {
+    color: #8b949e;
+}
+
+/* HR replacement */
+hr {
+    border: none;
+    border-top: 1px solid #30363d;
+    margin: 24px 0;
+}
+
+/* Selection highlight */
+::selection {
+    background: #388bfd33;
+    color: #58a6ff;
+}
+
+/* Scrollbar styling for webkit browsers */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #161b22;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}

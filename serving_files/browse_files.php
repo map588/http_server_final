@@ -35,7 +35,7 @@ echo "<h2>Files in " . htmlspecialchars($currentDir) . "</h2>";
 
 if ($currentDir != '.') {
     $parentDir = dirname($currentDir);
-    echo "<a href='browse_files.php?dir=" . urlencode($parentDir) . "'>📁 ../</a><br><br>";
+    echo "<a href='browse_files.php?dir=" . urlencode($parentDir) . "' class='nav-link'>[..] Parent Directory</a><br><br>";
 }
 
 $items = scandir('./serving_files/' . $currentDir);
@@ -65,7 +65,7 @@ if (empty($directories)) {
     echo "<li><em>No subdirectories</em></li>";
 } else {
     foreach ($directories as $dir) {
-        echo "<li>📁 <a href='browse_files.php?dir=" . urlencode($dir['path']) . "'>" . htmlspecialchars($dir['name']) . "/</a></li>";
+        echo "<li>[DIR] <a href='browse_files.php?dir=" . urlencode($dir['path']) . "'>" . htmlspecialchars($dir['name']) . "/</a></li>";
     }
 }
 echo "</ul>";
@@ -88,18 +88,14 @@ if (empty($files)) {
 } else {
     foreach ($files as $file) {
         $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $icon = '📄';
-        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) $icon = '🖼️';
-        elseif (in_array($ext, ['cpp', 'c', 'h', 'hpp'])) $icon = '📝';
-        elseif (in_array($ext, ['php', 'js', 'css', 'html'])) $icon = '🌐';
-        elseif (in_array($ext, ['txt', 'md'])) $icon = '📋';
+
         
         // Only route code files to code view; others should be served normally via raw_file
         $isCode = in_array(strtolower($ext), ['php', 'cpp', 'c', 'hpp', 'h']);
         if ($isCode) {
-            echo "<li>$icon <a href='code_view.php?file=" . urlencode($file['path']) . "&dir=" . urlencode($currentDir) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
+            echo "<li><a href='code_view.php?file=" . urlencode($file['path']) . "&dir=" . urlencode($currentDir) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
         } else {
-            echo "<li>$icon <a href='?raw_file=" . urlencode($file['path']) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
+            echo "<li><a href='?raw_file=" . urlencode($file['path']) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
         }
     }
 }
@@ -109,7 +105,7 @@ echo "<hr>";
 echo "<h3>Directory Info:</h3>";
 echo "<p>Total items: " . (count($directories) + count($files)) . " (" . count($directories) . " directories, " . count($files) . " files)</p>";
 
-echo "<h2>----------------------------</h2>";
-echo "<h2><a href='index.php'>Back to Main Page</a></h2>";
+echo "<div class='section-divider'></div>";
+echo "<a href='index.php' class='nav-link'>Back to Command Executor</a>";
 echo "</body>";
 echo "</html>";

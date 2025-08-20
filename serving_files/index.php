@@ -15,6 +15,7 @@ if (isset($_GET['file']) && isset($_GET['arguments'])) {
 
 // Handle output
 $body_text =nl2br(htmlspecialchars($argv[1] ?? ''));
+$selectedFile = $_GET['file'] ?? '';
 $items     = scandir($currentDir);
 $listItems = '';
 
@@ -24,7 +25,8 @@ foreach ($items as $item) {
     }
     if (file_exists($currentDir . '/' . $item)) {
         $itemName = pathinfo($item, PATHINFO_FILENAME);
-        $listItems .= '<li><a href="#" onclick="selectFile(\'' . $item . '\')">' . $itemName . "</a></li>\n";
+        $selectedClass = ($item === $selectedFile) ? ' class="selected"' : '';
+        $listItems .= '<li><a href="#" onclick="selectFile(\'' . $item . '\')"' . $selectedClass . '>' . $itemName . "</a></li>\n";
     }
 }
 
@@ -57,15 +59,13 @@ const selectFile = (file) => {
 };
 </script>
 
-<h2>Program Output {\n</h2>
+<h2>Program Output</h2>
 <pre>$body_text</pre>
-<h2>\n}</h2>
-<h2>----------------------------</h2>
 
-<h2>Browse Files\n</h2>
-<a href='browse_files.php'>Browse Files\n</a>
+<div class="section-divider"></div>
 
-<h2>----------------------------</h2>
+<h2>Browse Files</h2>
+<a href='browse_files.php'>Browse Files</a>
 
 </body>
 </html>

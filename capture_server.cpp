@@ -10,6 +10,7 @@
 extern char **environ;
 static std::atomic<bool> g_shutdown_requested(false);
 static int g_listen_fd = -1;
+static log_level LOG_LEVEL = log_level::INFO;
 
 static void handle_termination_signal(int /*sig*/) {
     g_shutdown_requested.store(true);
@@ -191,6 +192,15 @@ bool ConnectionContext::readRequest() {
     return true;
 }
 
+inline bool isCodeFile(const std::string& path) {
+    std::string lower = path;
+    for (char &ch : lower) ch = std::tolower(static_cast<unsigned char>(ch));
+    return lower.rfind(".php") == lower.size()-4 || lower.rfind(".cpp") == lower.size()-4 ||
+           lower.rfind(".cxx") == lower.size()-4 || lower.rfind(".cc") == lower.size()-3 ||
+           lower.rfind(".c") == lower.size()-2 || lower.rfind(".hpp") == lower.size()-4 ||
+           lower.rfind(".h") == lower.size()-2;
+}
+
 bool ConnectionContext::parseRequest() {
     std::istringstream request_stream(request_info.raw_path);
     std::string request_line;
@@ -204,7 +214,7 @@ bool ConnectionContext::parseRequest() {
     request_info.path = std::regex_replace(request_info.path, dotdot_regex, "");
     
     log(log_level::TRACE, "recv " + request_info.method + " " + request_info.path);
-    
+
     // Remove leading slash
     if (!request_info.path.empty() && request_info.path[0] == '/') {
         request_info.path = request_info.path.substr(1);
@@ -292,10 +302,7 @@ bool ConnectionContext::parseRequest() {
                 // Only pass file to code_view for allowed extensions
                 std::string lower = file_value;
                 for (char &ch : lower) ch = std::tolower(static_cast<unsigned char>(ch));
-                bool isCode = lower.rfind(".php") == lower.size()-4 || lower.rfind(".cpp") == lower.size()-4 ||
-                              lower.rfind(".cxx") == lower.size()-4 || lower.rfind(".cc") == lower.size()-3 ||
-                              lower.rfind(".c") == lower.size()-2 || lower.rfind(".hpp") == lower.size()-4 ||
-                              lower.rfind(".h") == lower.size()-2;
+                bool isCode = isCodeFile(file_value);
                 if (original_path.find("code_view.php") != npos && !isCode) {
                     // drop file arg if not a code file
                 } else {
@@ -312,12 +319,7 @@ bool ConnectionContext::parseRequest() {
                 size_t p = 0;
                 while ((p = file_value.find("%2F", p)) != npos) { file_value.replace(p, 3, "/"); p += 1; }
                 // Only pass file to code_view for allowed extensions
-                std::string lower = file_value;
-                for (char &ch : lower) ch = std::tolower(static_cast<unsigned char>(ch));
-                bool isCode = lower.rfind(".php") == lower.size()-4 || lower.rfind(".cpp") == lower.size()-4 ||
-                              lower.rfind(".cxx") == lower.size()-4 || lower.rfind(".cc") == lower.size()-3 ||
-                              lower.rfind(".c") == lower.size()-2 || lower.rfind(".hpp") == lower.size()-4 ||
-                              lower.rfind(".h") == lower.size()-2;
+                bool isCode = isCodeFile(file_value);
                 if (original_path.find("code_view.php") != npos && !isCode) {
                     request_info.args = ""; // drop
                 } else {
@@ -349,7 +351,11 @@ bool ConnectionContext::parseRequest() {
         } else {
             // Assume it's a regular file
             request_info.type = req_type::FILE;
-            // Add serving_files path for files if not already present
+            // Remove query string if present
+            size_t qmark_index = request_info.path.find("?");
+            if (qmark_index != npos) {
+                request_info.path = request_info.path.substr(0, qmark_index - 1);
+            }
             request_info.path = "./serving_files/" + request_info.path;
         }
     }
@@ -655,55 +661,25 @@ inline std::string ConnectionContext::determineContentType(const std::string& fi
     return "text/plain";
 }
 
-// Global helper functions
-inline void ConnectionContext::logInfo(const std::string &message) const {
-    if (suppress_logging_for_request) return;
-    std::cout << "[#" << request_id << "] INFO: " << message << std::endl;
-}
-
-inline void ConnectionContext::logTrace(const std::string &message) const {
-    if (suppress_logging_for_request) return;
-    std::cout << "[#" << request_id << "] TRACE: " << message << std::endl;
-}
-
-inline void ConnectionContext::logError(const std::string &message) const {
-    if (suppress_logging_for_request) return;
-    std::cerr << "[#" << request_id << "] ERROR: " << message << std::endl;
-}
+inline std::string log_level_to_string(log_level level) {
+        switch (level) {
+            case log_level::INFO: return "INFO";
+            case log_level::TRACE: return "TRACE";
+            case log_level::ERROR: return "ERROR";
+            default: return "UNKNOWN";
+        }
+    }
 
 void ConnectionContext::log(int thread_id, log_level level, const std::string &message) const {
     if (suppress_logging_for_request) return;
-    switch (level) {
-        case log_level::INFO:
-            std::cout << "[#" << request_id << "] "<< " T" << thread_id << " INFO: " << message << std::endl;
-            break;
-        case log_level::TRACE:
-            std::cout << "[#" << request_id << "] "<< " T" << thread_id << " TRACE: " << message << std::endl;
-            break;
-        case log_level::ERROR:
-            std::cerr << "[#" << request_id << "] "<< " T" << thread_id << " ERROR: " << message << std::endl;
-            break;
-        default:
-            std::cout << "[#" << request_id << "] "<< " T" << thread_id << " UNKNOWN: " << message << std::endl;
-            break;
-    }
+    if (LOG_LEVEL < level) return;
+    std::cout << "[#" << request_id << "] "<< " T" << thread_id << " " << log_level_to_string(level) << ": " << message << std::endl;
 }
 
 void ConnectionContext::log(log_level level, const std::string &message) const {
-    switch (level) {
-        case log_level::INFO:
-            std::cout << "[#" << request_id << "] INFO: " << message << std::endl;
-            break;
-        case log_level::TRACE:
-            std::cout << "[#" << request_id << "] TRACE: " << message << std::endl;
-            break;
-        case log_level::ERROR:
-            std::cerr << "[#" << request_id << "] ERROR: " << message << std::endl;
-            break;
-        default:
-            std::cout << "[#" << request_id << "] UNKNOWN: " << message << std::endl;
-            break;
-    }
+    if (suppress_logging_for_request) return;
+    if (LOG_LEVEL < level) return;
+    std::cout << "[#" << request_id << "] " << log_level_to_string(level) << ": " << message << std::endl;
 }
 
 void spawn_and_capture(char *argv[], std::stringstream &output) {
