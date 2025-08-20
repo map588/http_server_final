@@ -70,6 +70,17 @@ if (empty($directories)) {
 }
 echo "</ul>";
 
+// If specific file is requested, redirect to full-page code view
+if (isset($_GET['file'])) {
+    $requestedFile = $_GET['file'];
+    if (strpos($requestedFile, '..') === false) {
+        $redir = 'code_view.php?file=' . urlencode($requestedFile);
+        if (isset($_GET['dir'])) { $redir .= '&dir=' . urlencode($_GET['dir']); }
+        header('Location: ' . $redir);
+        exit;
+    }
+}
+
 echo "<h3>Files:</h3>";
 echo "<ul>";
 if (empty($files)) {
@@ -83,8 +94,13 @@ if (empty($files)) {
         elseif (in_array($ext, ['php', 'js', 'css', 'html'])) $icon = '🌐';
         elseif (in_array($ext, ['txt', 'md'])) $icon = '📋';
         
-        // Use special parameter for raw file viewing
-        echo "<li>$icon <a href='?raw_file=" . urlencode($file['path']) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
+        // Only route code files to code view; others should be served normally via raw_file
+        $isCode = in_array(strtolower($ext), ['php', 'cpp', 'c', 'hpp', 'h']);
+        if ($isCode) {
+            echo "<li>$icon <a href='code_view.php?file=" . urlencode($file['path']) . "&dir=" . urlencode($currentDir) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
+        } else {
+            echo "<li>$icon <a href='?raw_file=" . urlencode($file['path']) . "'>" . htmlspecialchars($file['name']) . "</a></li>";
+        }
     }
 }
 echo "</ul>";
