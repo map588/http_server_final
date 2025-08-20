@@ -56,6 +56,12 @@ $listItems
 <script>
 const selectFile = (file) => {
      document.getElementById('selectedFile').value = file;
+     // Remove selected class from all links
+     document.querySelectorAll('li a').forEach(link => {
+         link.classList.remove('selected');
+     });
+     // Add selected class to clicked link
+     event.target.classList.add('selected');
 };
 </script>
 

@@ -37,6 +37,7 @@ struct RequestInfo {
     // Request type
     req_type type;
     // Request internal details
+    int thread_id;
     std::string path;
     std::string command;
     std::string args;
@@ -76,9 +77,9 @@ private:
     bool socket_closed;
     uint64_t request_id;
     bool suppress_logging_for_request;
-    
+    int thread_id;
 public:
-    ConnectionContext();  // Default constructor for pre-allocation
+    ConnectionContext(int thread_id);  // Default constructor for pre-allocation
     ~ConnectionContext();
     
     void reset(int fd);  // Reset context for new connection
@@ -91,12 +92,12 @@ public:
     bool sendData(const char* data, size_t length);
     bool sendFile(const std::string& filepath);
     
-    void handleRequest(int thread_id);
+    void handleRequest();
     
     RequestInfo& getRequestInfo() { return request_info; }
     int getSocketFd() const { return socket_fd; }
-    char* getResponseBuffer() { return response_buffer; }
-    
+    char* getResponseBuffer() { return response_buffer; } 
+    int getThreadId() const { return thread_id; }
 private:
     bool handleCommandRequest();
     bool handleFileRequest();
@@ -107,7 +108,6 @@ private:
 
     
     void log(int thread_id, log_level level, const std::string &message) const;
-    void log(log_level level, const std::string &message) const;
 };
 
 

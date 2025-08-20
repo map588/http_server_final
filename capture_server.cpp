@@ -23,13 +23,7 @@ static void handle_termination_signal(int /*sig*/) {
 struct ThreadData {
     class ThreadPool* pool;
     ConnectionContext* context;
-    int thread_id;
 };
-
-typedef struct {
-    int thread_id;
-    std::string message;
-} LogMessage;
 
 // Simple thread pool class
 class ThreadPool {
@@ -62,8 +56,7 @@ private:
 
     for (size_t i = 0; i < num_threads; ++i) {
       thread_data[i].pool = this;
-      thread_data[i].context = new ConnectionContext();
-      thread_data[i].thread_id = i;
+      thread_data[i].context = new ConnectionContext(i);
 
       pthread_t thread;
       pthread_create(&thread, NULL, worker_thread, &thread_data[i]);
@@ -89,7 +82,7 @@ private:
     ThreadData *data = static_cast<ThreadData *>(arg);
     ThreadPool *pool = data->pool;
     ConnectionContext *ctx = data->context;
-    int thread_id = data->thread_id;
+    int thread_id = ctx->getThreadId();
 
     while (true) {
       int socket_fd;
@@ -112,7 +105,7 @@ private:
 
       // Use the pre-allocated context for this thread
       ctx->reset(socket_fd);
-      ctx->handleRequest(thread_id);
+      ctx->handleRequest();
       // Ensure connection is closed so clients know response is complete
       ctx->cleanup();
     }
@@ -124,12 +117,13 @@ private:
 // ConnectionContext Implementation  
 static uint64_t global_request_counter = 0;
 
-ConnectionContext::ConnectionContext() : socket_fd(-1), socket_closed(true) {
+ConnectionContext::ConnectionContext(int thread_id) : socket_fd(-1), socket_closed(true), thread_id(thread_id) {
     memset(request_buffer, 0, BUFFER_SIZE); 
     memset(response_buffer, 0, BUFFER_SIZE);
     memset((void*)&request_info, 0, sizeof(request_info));
     request_id = 0;
     suppress_logging_for_request = false;
+    request_info.thread_id = thread_id;
     reset(-1);  // Initialize with invalid socket
 }
 
@@ -213,7 +207,7 @@ bool ConnectionContext::parseRequest() {
     std::regex dotdot_regex("\\.\\./");
     request_info.path = std::regex_replace(request_info.path, dotdot_regex, "");
     
-    log(log_level::TRACE, "recv " + request_info.method + " " + request_info.path);
+    log(thread_id, log_level::TRACE, "recv " + request_info.method + " " + request_info.path);
 
     // Remove leading slash
     if (!request_info.path.empty() && request_info.path[0] == '/') {
@@ -362,13 +356,14 @@ bool ConnectionContext::parseRequest() {
     // Early suppression: silence logs for static style assets
     if (request_info.path.find("./serving_files/style/") != npos) {
         suppress_logging_for_request = true;
+        std::cout << "[#" << request_id << "] "<< "T" << thread_id << ": static asset request." << std::endl;
     }
 
-    log(log_level::TRACE, request_info.print());
+    log(thread_id, log_level::TRACE, request_info.print());
     return true;
 }
 
-void ConnectionContext::handleRequest(int thread_id) {
+void ConnectionContext::handleRequest() {
     log(thread_id, log_level::TRACE, "handleRequest:start thread " + std::to_string(thread_id));
     if (!readRequest()) {
         log(thread_id, log_level::ERROR, "readRequest failed");
@@ -416,7 +411,7 @@ void ConnectionContext::handleRequest(int thread_id) {
 }
 
 bool ConnectionContext::handleCommandRequest() {
-    log(log_level::TRACE, "handleCommandRequest:begin");
+    log(thread_id, log_level::TRACE, "handleCommandRequest:begin");
     std::vector<std::string> filenames;
     scan_directory("./Executables", filenames);
     
@@ -433,7 +428,7 @@ bool ConnectionContext::handleCommandRequest() {
     
     if (!found_executable) {
         sendErrorResponse("Executable not found: " + request_info.command);
-        log(log_level::ERROR, "executable not found: " + request_info.command);
+        log(thread_id, log_level::ERROR, "executable not found: " + request_info.command);
         return false;
     }
     
@@ -463,16 +458,13 @@ bool ConnectionContext::handleCommandRequest() {
     std::stringstream output;
     spawn_and_capture(argv.data(), output);
     
-    // Send response header
-    sendResponseHeader("200 OK", "text/html");
-    
     // Execute index.php with the output
     std::string php_command = "php ./serving_files/index.php '" + output.str() + "'";
     return executePHP(php_command);
 }
 
 bool ConnectionContext::handleFileRequest() {
-    log(log_level::TRACE, "handleFileRequest:begin");
+    log(thread_id, log_level::TRACE, "handleFileRequest:begin");
     // Check if this is a raw file request (from browse_files.php)
     bool is_raw_request = (request_info.args == "raw");
     
@@ -486,7 +478,7 @@ bool ConnectionContext::handleFileRequest() {
     
     if (file == NULL) {
         sendErrorResponse("File not found: " + request_info.path);
-        log(log_level::ERROR, "file open failed: " + request_info.path);
+        log(thread_id, log_level::ERROR, "file open failed: " + request_info.path);
         return false;
     }
     
@@ -517,7 +509,7 @@ bool ConnectionContext::handleFileRequest() {
         
         if (bytes_read > 0) {
             if (!sendData(response_buffer, bytes_read)) {
-                log(log_level::ERROR, "sendData failed during file send");
+                log(thread_id, log_level::ERROR, "sendData failed during file send");
                 return false;
             }
         }
@@ -527,7 +519,7 @@ bool ConnectionContext::handleFileRequest() {
 }
 
 bool ConnectionContext::handlePhpRequest(const std::string& php_path, const std::string& args) {
-    log(log_level::TRACE, "handlePhpRequest:begin");
+    log(thread_id, log_level::TRACE, "handlePhpRequest:begin");
     // Build PHP command, do not pre-send header; executePHP will send with content-length
     std::string php_command = "php " + php_path;
     if (!args.empty()) {
@@ -541,12 +533,12 @@ bool ConnectionContext::executePHP(const std::string& php_command) {
     std::string final_command = php_command;
 
     if (!suppress_logging_for_request) {
-        std::cout << "[#" << request_id << "] php: " << final_command << std::endl;
+        log(thread_id, log_level::TRACE, "php: " + final_command);
     }
 
     FILE* fp = popen(final_command.c_str(), "r");
     if (fp == NULL) {
-        log(log_level::ERROR, "popen failed for php command");
+        log(thread_id, log_level::ERROR, "popen failed for php command");
         return false;
     }
 
@@ -558,7 +550,7 @@ bool ConnectionContext::executePHP(const std::string& php_command) {
 
     int rc = pclose(fp);
     if (rc == -1) {
-        log(log_level::ERROR, "pclose failed for php process");
+        log(thread_id, log_level::ERROR, "pclose failed for php process");
         return false;
     }
 
@@ -570,13 +562,13 @@ bool ConnectionContext::executePHP(const std::string& php_command) {
 
     if (write(socket_fd, header.c_str(), header.length()) == -1) {
         socket_closed = true;
-        log(log_level::ERROR, "write failed sending PHP header");
+        log(thread_id, log_level::ERROR, "write failed sending PHP header");
         return false;
     }
     if (!php_output.empty()) {
         if (write(socket_fd, php_output.c_str(), php_output.size()) == -1) {
             socket_closed = true;
-            log(log_level::ERROR, "write failed sending PHP body");
+            log(thread_id, log_level::ERROR, "write failed sending PHP body");
             return false;
         }
     }
@@ -594,7 +586,7 @@ bool ConnectionContext::sendResponse(const std::string& status, const std::strin
     ssize_t w = write(socket_fd, response.c_str(), response.length());
     if (w == -1) {
         socket_closed = true;
-        log(log_level::ERROR, "write failed in sendResponse");
+        log(thread_id, log_level::ERROR, "write failed in sendResponse");
         return false;
     }
     return true;
@@ -614,7 +606,7 @@ bool ConnectionContext::sendResponseHeader(const std::string& status, const std:
     ssize_t w = write(socket_fd, header.c_str(), header.length());
     if (w == -1) {
         socket_closed = true;
-        log(log_level::ERROR, "write failed in sendResponseHeader");
+        log(thread_id, log_level::ERROR, "write failed in sendResponseHeader");
         return false;
     }
     return true;
@@ -626,7 +618,7 @@ bool ConnectionContext::sendData(const char* data, size_t length) {
     ssize_t written = write(socket_fd, data, length);
     if (written == -1) {
         socket_closed = true;
-        log(log_level::ERROR, "write failed in sendData");
+        log(thread_id, log_level::ERROR, "write failed in sendData");
         return false;
     }
     
@@ -674,12 +666,6 @@ void ConnectionContext::log(int thread_id, log_level level, const std::string &m
     if (suppress_logging_for_request) return;
     if (LOG_LEVEL < level) return;
     std::cout << "[#" << request_id << "] "<< " T" << thread_id << " " << log_level_to_string(level) << ": " << message << std::endl;
-}
-
-void ConnectionContext::log(log_level level, const std::string &message) const {
-    if (suppress_logging_for_request) return;
-    if (LOG_LEVEL < level) return;
-    std::cout << "[#" << request_id << "] " << log_level_to_string(level) << ": " << message << std::endl;
 }
 
 void spawn_and_capture(char *argv[], std::stringstream &output) {
@@ -802,9 +788,11 @@ int main() {
                 break;
             }
             if (errno == EINTR) {
+                std::cout << "Interrupted\n";
                 continue;
             }
             perror("accept");
+            std::cout << "Error accepting connection: " << strerror(errno) << std::endl;
             continue;
         }
         

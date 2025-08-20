@@ -29,6 +29,19 @@ a:hover {
     text-decoration: underline;
 }
 
+/* Selected executable highlight */
+a.selected {
+    background: #2ea043;
+    color: #ffffff;
+    font-weight: bold;
+    padding: 4px 8px;
+}
+
+a.selected:hover {
+    background: #238636;
+    color: #ffffff;
+}
+
 ul {
     list-style: none;
     padding: 0;
